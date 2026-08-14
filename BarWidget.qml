@@ -415,8 +415,8 @@ BarWidget {
         }
 
         Button {
-          text: "Open"
-          tooltipText: "Focus the terminal running cliamp"
+          text: "Open in Pi"
+          tooltipText: "Open cliamp in the Pi/Herdr window"
           foreground: root.themeAccent
           onClicked: root.openCliamp()
         }

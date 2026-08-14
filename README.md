@@ -26,6 +26,8 @@ include a machine-specific shell configuration.
 - Left-click: play/pause
 - Right-click: open the station popup
 - Middle-click / scroll: previous or next station
-- Popup: station list, previous/play/next, volume, and EQ sound-mode cycling
+- Popup: station list, previous/play/next, volume, EQ sound-mode cycling, and Open in Pi
+- Open in Pi: moves/focuses the running cliamp Herdr pane into the Pi workspace,
+  or creates a new cliamp tab in the Pi window
 
 Colors follow the active Omarchy theme dynamically.
