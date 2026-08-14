@@ -54,8 +54,15 @@ BarWidget {
   readonly property int maxLabelWidth: Style.space(190)
   readonly property string ipcScriptPath: (Quickshell.env("HOME") || "")
     + "/.config/omarchy/plugins/rus.cliamp/cliamp-ipc.py"
+  readonly property string focusScriptPath: (Quickshell.env("HOME") || "")
+    + "/.config/omarchy/plugins/rus.cliamp/open-cliamp.py"
 
   function close() { popupOpen = false }
+
+  function openCliamp() {
+    popupOpen = false
+    Quickshell.execDetached(["/usr/bin/python3", focusScriptPath])
+  }
 
   function syncStationIndex() {
     if (!stations || stations.length === 0) return
@@ -405,6 +412,13 @@ BarWidget {
           tooltipText: "Next sound mode"
           foreground: root.themeAccent
           onClicked: root.cycleSoundMode()
+        }
+
+        Button {
+          text: "Open"
+          tooltipText: "Focus the terminal running cliamp"
+          foreground: root.themeAccent
+          onClicked: root.openCliamp()
         }
       }
 
