@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "rus.cliamp",
+  "name": "Cliamp",
+  "version": "0.1.0",
+  "author": "rus",
+  "description": "Cliamp now-playing and playback controls",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Cliamp",
+    "description": "Shows and controls the cliamp player",
+    "category": "Media",
+    "allowMultiple": false
+  }
+}
