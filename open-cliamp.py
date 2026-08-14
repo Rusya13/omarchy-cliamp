@@ -49,7 +49,7 @@ def focus_herdr_cliamp():
     if pi_ws and workspace != pi_ws:
         # Keep the running process, but put its pane in the Pi/Herdr window.
         run("herdr", "pane", "move", target["pane_id"], "--workspace", pi_ws,
-            "--new-tab", "--tab-label", "cliamp", "--focus")
+            "--new-tab", "--label", "cliamp", "--focus")
     else:
         run("herdr", "workspace", "focus", workspace)
     return True
