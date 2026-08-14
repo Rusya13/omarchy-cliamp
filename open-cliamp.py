@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 
 
 def run(*args):
@@ -25,6 +26,32 @@ def output_json(*args):
 
 def herdr_panes():
     return output_json("herdr", "pane", "list").get("result", {}).get("panes", [])
+
+
+def pi_window_exists():
+    clients = output_json("hyprctl", "clients", "-j")
+    if not isinstance(clients, list):
+        return False
+    return any(client.get("class") == "org.omarchy.pi"
+               or client.get("initialClass") == "org.omarchy.pi"
+               for client in clients)
+
+
+def ensure_pi_window():
+    # --show is intentionally used even when the window exists: it reveals a
+    # hidden special:pi window without toggling it closed.
+    launcher = os.path.expanduser("~/.local/bin/omarchy-launch-pi")
+    if not os.path.exists(launcher):
+        launcher = "omarchy-launch-pi"
+    subprocess.Popen([launcher, "--show"], start_new_session=True,
+                     env={**os.environ, "HERDR_ENV": "1"})
+
+    # The launcher may have to start the Herdr server and attach a terminal.
+    for _ in range(40):
+        if pi_window_exists() and pi_pane(herdr_panes()):
+            return True
+        time.sleep(0.25)
+    return False
 
 
 def pi_pane(panes):
@@ -119,10 +146,16 @@ def focus_hyprland_cliamp():
     return False
 
 
-if focus_herdr_cliamp() or focus_hyprland_cliamp() or open_in_pi_herdr():
+# Bring up the actual Pi window first. Without this, Herdr can focus a
+# workspace successfully while its terminal remains hidden.
+if ensure_pi_window() and (focus_herdr_cliamp() or open_in_pi_herdr()):
     sys.exit(0)
 
-# No Herdr or existing terminal was found: create/focus a dedicated TUI window.
+# If Pi/Herdr is unavailable, focus an already-visible cliamp window rather
+# than silently doing nothing.
+if focus_hyprland_cliamp():
+    sys.exit(0)
+
 subprocess.Popen([
     "omarchy-launch-or-focus-tui",
     "--app-id=org.omarchy.cliamp",
