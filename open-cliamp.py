@@ -4,11 +4,15 @@ import json
 import os
 import subprocess
 import sys
-import time
 
 
 def run(*args):
-    return subprocess.run(args, capture_output=True, text=True, timeout=3)
+    if args and args[0] == "herdr":
+        # Quickshell is not itself inside the Pi pane, so make the target
+        # Herdr session explicit instead of falling back to a new terminal.
+        args = ("herdr", "--session", "pi-agent", *args[1:])
+    return subprocess.run(args, capture_output=True, text=True, timeout=3,
+                          env={**os.environ, "HERDR_ENV": "1"})
 
 
 def output_json(*args):
@@ -23,11 +27,8 @@ def herdr_panes():
     return output_json("herdr", "pane", "list").get("result", {}).get("panes", [])
 
 
-def pi_workspace(panes):
-    for pane in panes:
-        if pane.get("agent") == "pi":
-            return pane.get("workspace_id")
-    return None
+def pi_pane(panes):
+    return next((pane for pane in panes if pane.get("agent") == "pi"), None)
 
 
 def is_cliamp_pane(pane_id):
@@ -43,13 +44,14 @@ def focus_herdr_cliamp():
         return False
 
     workspace = target.get("workspace_id")
-    pi_ws = pi_workspace(panes)
+    pi = pi_pane(panes)
     if not workspace:
         return False
-    if pi_ws and workspace != pi_ws:
-        # Keep the running process, but put its pane in the Pi/Herdr window.
-        run("herdr", "pane", "move", target["pane_id"], "--workspace", pi_ws,
-            "--new-tab", "--label", "cliamp", "--focus")
+    if pi and target.get("tab_id") != pi.get("tab_id"):
+        # Keep the running process, but put its pane beside Pi in the same
+        # Herdr tab, rather than creating another terminal window.
+        run("herdr", "pane", "move", target["pane_id"], "--tab", pi["tab_id"],
+            "--split", "right", "--target-pane", pi["pane_id"], "--focus")
     else:
         run("herdr", "workspace", "focus", workspace)
     return True
@@ -57,33 +59,22 @@ def focus_herdr_cliamp():
 
 def open_in_pi_herdr():
     panes = herdr_panes()
-    workspace = pi_workspace(panes)
-    if not workspace:
+    pi = pi_pane(panes)
+    if not pi:
         return False
 
-    before = {
-        tab.get("tab_id")
-        for tab in output_json("herdr", "tab", "list").get("result", {}).get("tabs", [])
-    }
-    created = run("herdr", "tab", "create", "--workspace", workspace,
-                  "--label", "cliamp", "--focus")
+    created = run("herdr", "pane", "split", "--pane", pi["pane_id"],
+                  "--direction", "right", "--cwd", pi.get("cwd", os.path.expanduser("~")),
+                  "--focus")
     if created.returncode != 0:
         return False
-
-    for _ in range(10):
-        time.sleep(0.1)
-        tabs = output_json("herdr", "tab", "list").get("result", {}).get("tabs", [])
-        new_tabs = [t for t in tabs if t.get("tab_id") not in before
-                    and t.get("workspace_id") == workspace]
-        if not new_tabs:
-            continue
-        tab_id = new_tabs[-1].get("tab_id")
-        panes = herdr_panes()
-        target = next((p for p in panes if p.get("tab_id") == tab_id), None)
-        if target:
-            run("herdr", "pane", "run", target["pane_id"], "cliamp")
-            return True
-    return False
+    try:
+        response = json.loads(created.stdout)
+        pane_id = response["result"]["pane"]["pane_id"]
+    except (ValueError, KeyError, TypeError):
+        return False
+    run("herdr", "pane", "run", pane_id, "cliamp")
+    return True
 
 
 def focus_hyprland_cliamp():
