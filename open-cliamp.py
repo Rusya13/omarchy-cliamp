@@ -53,7 +53,11 @@ def focus_herdr_cliamp():
         run("herdr", "pane", "move", target["pane_id"], "--tab", pi["tab_id"],
             "--split", "right", "--target-pane", pi["pane_id"], "--focus")
     else:
+        # Focus the cliamp sibling, not merely the already-focused workspace.
         run("herdr", "workspace", "focus", workspace)
+        if pi:
+            run("herdr", "pane", "focus", "--pane", pi["pane_id"],
+                "--direction", "right")
     return True
 
 
